@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Bloom Interactive</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f0f0f0; margin:0; padding:0;}
+header { background:#4CAF50; color:white; padding:15px; text-align:center; }
+header a { color:white; text-decoration:none; font-weight:bold; }
+button { padding:10px 20px; margin:5px; cursor:pointer; transition:0.3s; }
+button:hover { background:#45a049; color:white; }
+.login-section, .admin-panel, .quiz-section, .modal-section { background:white; margin:20px auto; padding:20px; border-radius:10px; max-width:700px; box-shadow:0 0 15px rgba(0,0,0,0.1);}
+h2,h3 { text-align:center; }
+input, select { padding:8px; margin:5px 0; width:100%; }
+.quiz-question, .modal-question { margin:10px 0; }
+.correct { color:green; font-weight:bold; }
+.incorrect { color:red; font-weight:bold; }
+footer { text-align:center; padding:15px; background:#222; color:white; }
+.note { background:#fffae6; padding:10px; border-left:5px solid #ff9900; margin-bottom:15px; }
+.dark-mode { background:#181818; color:white; }
+.dark-mode .login-section, .dark-mode .admin-panel, .dark-mode .quiz-section, .dark-mode .modal-section { background:#282828; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>English Bloom Interactive</h1>
+<p>Created by Rahul | <a href="https://www.facebook.com/yourfb" target="_blank">My Facebook</a></p>
+<button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+</header>
+
+<!-- LOGIN SECTION -->
+<div class="login-section" id="loginSection">
+<h2>Login / Sign Up</h2>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="signUp()">Sign Up</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-panel" id="adminPanel" style="display:none;">
+<h2>Admin Panel</h2>
+<div class="note">Add/Delete Users, Manage Quizzes, AI Quiz Generator</div>
+
+<h3>Add New Quiz Question</h3>
+<input type="text" id="newQuestionText" placeholder="Question text">
+<input type="text" id="newOption1" placeholder="Option 1">
+<input type="text" id="newOption2" placeholder="Option 2">
+<input type="text" id="newOption3" placeholder="Option 3">
+<input type="text" id="newOption4" placeholder="Option 4">
+<select id="newQuestionAnswer">
+<option value="1">Option 1</option>
+<option value="2">Option 2</option>
+<option value="3">Option 3</option>
+<option value="4">Option 4</option>
+</select>
+<select id="newQuestionCategory">
+<option value="Changing Sentences">Changing Sentences</option>
+<option value="Tag Questions">Tag Questions</option>
+<option value="Modal Questions">Modal Questions</option>
+</select>
+<button onclick="addQuizQuestion()">Add Quiz</button>
+
+<h3>Existing Quizzes</h3>
+<ul id="quizList"></ul>
+</div>
+
+<!-- STUDENT QUIZ SECTION -->
+<div class="quiz-section" id="quizSection" style="display:none;">
+<h2 id="greeting">Take Quiz</h2>
+<div id="quizContainer"></div>
+<p id="scoreDisplay"></p>
+<h3>Change Password</h3>
+<input type="password" id="oldPassword" placeholder="Old Password">
+<input type="password" id="newPassword" placeholder="New Password">
+<button onclick="changePassword()">Update Password</button>
+</div>
+
+<!-- MODAL QUESTIONS SECTION -->
+<div class="modal-section" id="modalSection" style="display:none;">
+<h2>Modal Questions</h2>
+<div id="modalContainer"></div>
+</div>
+
+<footer>
+<p>Created by Rahul | <a href="https://www.facebook.com/yourfb" target="_blank">My Facebook</a></p>
+<p>Quizzes inspired from SSC Advanced Grammar Book 2026–2027</p>
+</footer>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Gemini AI Placeholder -->
+<script>
+const GEMINI_API_KEY = "AIzaSyAdmyTR2AzXsbTV4NUbB72YDcOozB0XhtU"; // Your real key
+async function askGemini(question){
+  const dummyAnswer="This is a dummy answer. Replace with real Gemini API call using API key.";
+  return dummyAnswer;
+}
+</script>
+
+<!-- Firebase Config -->
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA5fs8uS87x4OQ-qc_qbY7YA7YR846uhSE",
+  authDomain: "english-bloom.firebaseapp.com",
+  projectId: "english-bloom",
+  storageBucket: "english-bloom.firebasestorage.app",
+  messagingSenderId: "821663678328",
+  appId: "1:821663678328:web:c0719559581f6cfd66d28d",
+  measurementId: "G-2TL7EMJP1Y"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+</script>
+
+<!-- MAIN JS -->
+<script>
+// Dark mode toggle
+function toggleDarkMode(){ document.body.classList.toggle("dark-mode"); }
+
+// Sign Up
+function signUp(){
+  const email=document.getElementById('email').value;
+  const pass=document.getElementById('password').value;
+  auth.createUserWithEmailAndPassword(email, pass)
+  .then(userCredential => { alert("Sign Up Successful! Login now."); })
+  .catch(err => { alert(err.message); });
+}
+
+// Login
+function login(){
+  const email=document.getElementById('email').value;
+  const pass=document.getElementById('password').value;
+  auth.signInWithEmailAndPassword(email, pass)
+  .then(userCredential=>{
+    const user = userCredential.user;
+    document.getElementById('loginSection').style.display='none';
+    if(user.email === "ff4572659@gmail.com"){
+      document.getElementById('adminPanel').style.display='block';
+      loadQuizzes();
+    } else {
+      document.getElementById('quizSection').style.display='block';
+      document.getElementById('modalSection').style.display='block';
+      loadQuizzes();
+      loadModalQuestions();
+    }
+  })
+  .catch(err=>alert(err.message));
+}
+
+// Change password
+function changePassword(){
+  const oldPass = document.getElementById('oldPassword').value;
+  const newPass = document.getElementById('newPassword').value;
+  const user = auth.currentUser;
+  const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+  user.reauthenticateWithCredential(credential)
+  .then(()=> user.updatePassword(newPass))
+  .then(()=> alert("Password updated!"))
+  .catch(err=> alert(err.message));
+}
+
+// Quiz data
+let quizzes = [
+  {category:"Changing Sentences", questions:[
+    {question:"Hasan Sir is playing football. Choose correct form.", options:["Hasan Sir play football","Hasan Sir plays football","Hasan Sir played football","Hasan Sir playing football"], answer:2},
+    {question:"Momo is reading a book.", options:["Momo read a book","Momo reads a book","Momo reading book","Momo has read book"], answer:2}
+  ]},
+  {category:"Tag Questions", questions:[
+    {question:"Prionti is happy, ___?", options:["is she","isn't she","doesn't she","aren't she"], answer:2},
+    {question:"Ayat likes ice cream, ___?", options:["doesn't he","does he","isn't he","aren't he"], answer:2}
+  ]},
+  {category:"Modal Questions", questions:[
+    {question:"Sakib can swim well. What is correct?", options:["Can Sakib swim?","Sakib can swim?","Sakib swims?","Sakib can swims?"], answer:1},
+    {question:"Mrittika should do homework.", options:["Should Mrittika do homework?","Mrittika should does homework?","Mrittika should do?","Should Mrittika does homework?"], answer:1}
+  ]]
+];
+
+// Load quizzes for student
+function loadQuizzes(){
+  const container = document.getElementById('quizContainer');
+  container.innerHTML='';
+  quizzes.forEach(cat=>{
+    const h3 = document.createElement('h3'); h3.textContent=cat.category; container.appendChild(h3);
+    cat.questions.forEach((q,i)=>{
+      const div = document.createElement('div'); div.className='quiz-question';
+      div.innerHTML=`<b>Q${i+1}:</b> ${q.question}<br>
+      ${q.options.map((opt,j)=>`<input type="radio" name="${cat.category}_${i}" value="${j+1}"> ${opt}<br>`).join('')}
+      <button onclick="checkAnswer('${cat.category}',${i})">Check Answer</button>
+      <span id="result_${cat.category}_${i}"></span>`;
+      container.appendChild(div);
+    });
+  });
+  document.getElementById('scoreDisplay').textContent='';
+}
+
+// Check answer
+function checkAnswer(catName,index){
+  const radios = document.getElementsByName(catName+'_'+index);
+  let selected;
+  radios.forEach(r=>{ if(r.checked) selected = parseInt(r.value); });
+  const cat = quizzes.find(c=>c.category===catName);
+  const correct = cat.questions[index].answer;
+  const span = document.getElementById(`result_${catName}_${index}`);
+  if(selected===correct){ span.textContent=" ✅ Correct"; span.className='correct'; }
+  else{ span.textContent=` ❌ Incorrect (Answer: ${cat.questions[index].options[correct-1]})`; span.className='incorrect'; }
+  updateScore();
+}
+
+// Update score
+function updateScore(){
+  let total=0, correctCount=0;
+  quizzes.forEach(cat=>cat.questions.forEach((q,i)=>{
+    const span = document.getElementById(`result_${cat.category}_${i}`);
+    if(span && span.className==='correct') correctCount++;
+    total++;
+  }));
+  document.getElementById('scoreDisplay').textContent=`Score: ${correctCount} / ${total}`;
+}
+
+// Add quiz (admin)
+function addQuizQuestion(){
+  const text=document.getElementById('newQuestionText').value;
+  const opt1=document.getElementById('newOption1').value;
+  const opt2=document.getElementById('newOption2').value;
+  const opt3=document.getElementById('newOption3').value;
+  const opt4=document.getElementById('newOption4').value;
+  const ans=parseInt(document.getElementById('newQuestionAnswer').value);
+  const catName=document.getElementById('newQuestionCategory').value;
+  let cat = quizzes.find(c=>c.category===catName);
+  if(!cat){ cat={category:catName, questions:[]}; quizzes.push(cat); }
+  cat.questions.push({question:text, options:[opt1,opt2,opt3,opt4], answer:ans});
+  alert("Quiz added!");
+  document.getElementById('newQuestionText').value='';
+  document.getElementById('newOption1').value='';
+  document.getElementById('newOption2').value='';
+  document.getElementById('newOption3').value='';
+  document.getElementById('newOption4').value='';
+}
+
+// Load modal questions
+function loadModalQuestions(){
+  const container = document.getElementById('modalContainer');
+  container.innerHTML='';
+  const modalCat = quizzes.find(c=>c.category==='Modal Questions');
+  if(modalCat){
+    modalCat.questions.forEach((q,i)=>{
+      const div = document.createElement('div'); div.className='modal-question';
+      div.innerHTML=`<b>Q${i+1}:</b> ${q.question}<br>
+      ${q.options.map((opt,j)=>`<input type="radio" name="modal_${i}" value="${j+1}"> ${opt}<br>`).join('')}
+      <button onclick="checkAnswer('Modal Questions',${i})">Check Answer</button>
+      <span id="result_Modal Questions_${i}"></span>`;
+      container.appendChild(div);
+    });
+  }
+}
+</script>
+
+</body>
+  </html>
